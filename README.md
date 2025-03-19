@@ -1,6 +1,6 @@
 # Project 4 - Disjoint Sets Applications
 
-#### Deadline: Tuesday, 03/11, 9:30 am CST (before the lecture).
+#### Deadline: Tuesday, 04/08, 9:30 am CST (before the lecture).
 
 ## Project Description
 The description of the project can be found on the [class website](https://sites.google.com/uic.edu/cs-351/project-4-disjoint-sets). 
