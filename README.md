@@ -1,7 +1,7 @@
 [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/61urpQR4)
 # Project 4 - Disjoint Sets Applications
 
-#### Deadline: Tuesday, 03/11, 9:30 am CST (before the lecture).
+#### Deadline: Tuesday, 04/08, 9:30 am CST (before the lecture).
 
 ## Project Description
 The description of the project can be found on the [class website](https://sites.google.com/uic.edu/cs-351/project-4-disjoint-sets). 
