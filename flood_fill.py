@@ -25,7 +25,7 @@ from typing import NamedTuple
 from unionfind import UnionFind
 
 
-FRAMES_INTERVAL = 200 # Pixels between frames taken during flood fill
+FRAMES_INTERVAL = 200 # Pixels changed between frames taken during flood fill
 FRAMES_LIMIT    = 200 # Max number of frames to animate the flood fill
 FRAMES_DURATION = 1   # Duration each frame is shown (in milliseconds)
 
@@ -36,7 +36,7 @@ class Args:
     image: str        # Path to the image to flood fill
     start: tuple[int] # Starting point for the flood fill (row, col)
     color: tuple[int] # Fill color as an (R, G, B) tuple
-    adt:   str        # Data structure ('unionfind', 'stack', or 'queue') to use in the flood fill
+    ds:    str        # Data structure ('unionfind', 'stack', or 'queue') to use in the flood fill
 
 
 #
@@ -103,12 +103,12 @@ def union_pixels_by_color(img: Image.Image) -> UnionFind:
 
 
 #
-# Uses Union-Find to flood fill the image with the given color from the given starting position
+# Flood fills the image by using union-find
 #
 def union_find_flood_fill(
-    img: Image.Image,
-    start: Point,
-    color: Color
+    img: Image.Image, # Image to flood file
+    start: Point,     # Starting position of the flood fill
+    color: Color      # Data structure to use in the flood fill 
 ) -> list[Image.Image]:
     # List to store frames for the animation
     frames: list[Image.Image] = []
@@ -127,7 +127,7 @@ def union_find_flood_fill(
             if img_uf.find(idx) == parent:
                 img.putpixel((col, row), color)
 
-            # Add frame every FRAMES_INTERVAL pixels
+            # Capture a new frame every FRAMES_INTERVAL pixels
             if idx % FRAMES_INTERVAL == 0:
                 frames.append(img.copy())
 
@@ -138,10 +138,10 @@ def union_find_flood_fill(
 # Uses queue (BFS) or stack (DFS) to flood fill the image with the given color from the given starting position
 #
 def recursive_flood_fill(
-    img: Image.Image,
-    start: Point,
-    color: Color,
-    mode: str
+    img: Image.Image, # Image to flood fill
+    start: Point,     # Starting position of the flood fill
+    color: Color,     # Fill color
+    ds: str           # Data structure to use in the flood fill   
 ) -> list[Image.Image]:
     # List to store frames for the animation
     frames: list[Image.Image] = []
@@ -160,7 +160,7 @@ def recursive_flood_fill(
     # Continue until structure is empty
     while len(queue_stack) != 0:
         # Pop from front if queue, back if stack
-        point = queue_stack.popleft() if mode == "queue" else queue_stack.pop() # if mode == "stack"
+        point = queue_stack.popleft() if ds == "queue" else queue_stack.pop() # if mode == "stack"
         # Get color of current pixel
         point_color = Color(*img.getpixel(point))
 
@@ -182,7 +182,7 @@ def recursive_flood_fill(
             if point.row + 1 < img.height:
                 queue_stack.append(Point(point.col, point.row + 1))
 
-        # Add frame every FRAMES_INTERVAL pixels
+        # Capture a new frame every FRAMES_INTERVAL pixels
         if frames_timer % FRAMES_INTERVAL == 0:
             frames.append(img.copy())
 
@@ -222,7 +222,7 @@ def main() -> None:
     parser.add_argument("image", type=str, help="Path to the image to flood fill")
     parser.add_argument("start", type=to_tuple, help="Starting point for the flood fill (e.g. 0,0)")
     parser.add_argument("color", type=to_tuple, help="Fill color (e.g. 255,0,0)")
-    parser.add_argument("--adt", type=str, default="unionfind", help="Data structure to use in the flood fill")
+    parser.add_argument("--ds", type=str, default="unionfind", help="Data structure to use in the flood fill")
 
     # Parse the command-line arguments
     args: Args = parser.parse_args()
@@ -234,12 +234,12 @@ def main() -> None:
     img: Image.Image = Image.open(args.image).convert("RGB")
 
     # Based on the abstact data structure (or ADT) selected, flood fill with:
-    if args.adt == "unionfind":
+    if args.ds == "unionfind":
         # Union-find
         frames = union_find_flood_fill(img, Point(*args.start), Color(*args.color))
-    elif args.adt == "stack" or args.adt == "queue":
+    elif args.ds == "stack" or args.ds == "queue":
         # Recursion and stack/queue
-        frames = recursive_flood_fill(img, Point(*args.start), Color(*args.color), args.adt)
+        frames = recursive_flood_fill(img, Point(*args.start), Color(*args.color), args.ds)
 
     # Limit the number of frames to the specified limit
     frames = evenly_limit_frames(frames, FRAMES_LIMIT)
