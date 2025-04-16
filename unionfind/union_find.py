@@ -5,14 +5,14 @@ class UnionFind:
     #
     # Default constructor
     #
-    def __init__(self, n):
+    def __init__(self, n: int) -> None:
         self.parent = list(range(n)) 
         self.rank = [1] * n 
     
     #
     # Returns the root of the set containing element 'x'.
     #
-    def find(self, x):
+    def find(self, x: int) -> int:
         if self.parent[x] != x:
             self.parent[x] = self.find(self.parent[x])
 
@@ -21,7 +21,7 @@ class UnionFind:
     #
     # Merges the sets containing 'x' and 'y'.
     #
-    def union(self, x, y):
+    def union(self, x: int, y: int) -> None:
         x = self.find(x)
         y = self.find(y)
 
@@ -38,13 +38,13 @@ class UnionFind:
     #
     # Representation method
     #
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "\n".join([self.parent, self.rank])
     
     #
     # String method
     #
-    def __str__(self):
+    def __str__(self) -> str:
         return f"UnionFind(\n\tparent={self.parent}\n\trank  ={self.rank}\n)"
     
 
