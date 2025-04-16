@@ -246,7 +246,7 @@ def main() -> None:
 
     # Save the frames as an animated GIF
     frames[0].save(
-        f"gifs/{Path(args.image).stem}.gif", # Save with the same name as the image but in the 'gifs' folder
+        f"gifs/{Path(args.image).stem}-{args.ds}.gif", # Save with the same name as the image but in the 'gifs' folder
         save_all=True,
         append_images=frames[1:], # Append subsequent frames
         duration=FRAMES_DURATION, # Set duration per frame
