@@ -24,27 +24,36 @@ from typing import NamedTuple
 from os import makedirs
 
 
-TIMER = 200
-DURATION = 1
+FRAMES_INTERVAL = 200
+FRAMES_LIMIT    = 200 
+FRAMES_DURATION = 1   # Duration each frame is shown (in seconds)
 
 
+# Type hints for the argument parser
 @dataclass
 class Args:
-    image:  str
-    target: tuple[int]
-    color:  tuple[int]
-    mode:   str
+    image: str        # Path to the image to flood fill
+    start: tuple[int] # Starting point for the flood fill (row, col)
+    color: tuple[int] # Fill color as an (R, G, B) tuple
+    adt:   str        # Data structure ('unionfind', 'stack', or 'queue') to use in the flood fill
 
 
+#
+# A `NamedTuple` is a subclass of Python’s built-in `tuple` that lets you define tuples with fields, making the tuple 
+# elements more readable. Unlike regular tuples, you can access values by name (e.g., `point.row`) instead of by index.
+# 
+
+# Class and type hints for the point named tuple
 class Point(NamedTuple):
-    col: int
-    row: int
+    col: int # Column index (x-coordinate)
+    row: int # Row index (y-coordinate)
 
 
+# Class and type hints for the color named tuple
 class Color(NamedTuple):
-    r: int
-    g: int
-    b: int
+    r: int # Red component (0–255)
+    g: int # Green component (0–255)
+    b: int # Blue component (0–255)
 
 
 #
@@ -55,120 +64,126 @@ def is_similar_color(p1: Color, p2: Color, threshold: int = 300) -> bool:
 
 
 #
-#
+# Group adjacent pixels in an image by color similarity
 #
 def union_pixels_by_color(img: Image.Image) -> UnionFind:
-    img_ds = UnionFind(img.width * img.height)
+    img_uf = UnionFind(img.width * img.height) 
 
     for row in range(img.height):
         for col in range(img.width):
-            idx = row * img.width + col
-            color = Color(*img.getpixel((col, row)))
+            # Flatten 1D index from 2D coordinates
+            idx = row * img.width + col 
 
-            adjacent = []
+            neighbors = []
 
-            #
+            # Left neighbor
             if col - 1 >= 0:
-                adjacent.append((col - 1, row))
-            #
+                neighbors.append((col - 1, row))
+            # Right neighbor
             if col + 1 < img.width:
-                adjacent.append((col + 1, row))
-            #
+                neighbors.append((col + 1, row))
+            # Top neighbor
             if row - 1 >= 0:
-                adjacent.append((col, row - 1))
-            #
+                neighbors.append((col, row - 1))
+            # Bottom neighbor
             if row + 1 < img.height:
-                adjacent.append((col, row + 1))
-            
-            for col_a, row_a in adjacent:
-                if is_similar_color(color, Color(*img.getpixel((col_a, row_a)))):
-                    img_ds.union(idx, row_a * img.width + col_a)
+                neighbors.append((col, row + 1))
 
-    return img_ds
+            if len(neighbors) != 0:
+                # Color of the current cell
+                color = Color(*img.getpixel((col, row))) 
+                
+                for col_n, row_n in neighbors:
+                    # Union if the neighbor cell has similar color
+                    if is_similar_color(color, Color(*img.getpixel((col_n, row_n)))):
+                        img_uf.union(idx, row_n * img.width + col_n)
+
+    return img_uf 
 
 
 #
+# Uses Union-Find to flood fill the image with the given color from the given starting position
 #
-#
-def disjoint_sets_flood_fill(
+def union_find_flood_fill(
     img: Image.Image,
-    target: Point,
+    start: Point,
     color: Color
 ) -> list[Image.Image]:
-    #
+    # List to store frames for the animation
     frames: list[Image.Image] = []
 
-    #
-    img_ds = union_pixels_by_color(img)
-    #
-    parent = img_ds.find(target.row * img.width + target.col)
+    # Get the union-find with pixels grouped by color
+    img_uf = union_pixels_by_color(img)
+    # Get the parent of the start pixel
+    parent = img_uf.find(start.row * img.width + start.col) # uses flatten 1D index from 2D coordinates
 
-    #
     for row in range(img.height):
-        #
         for col in range(img.width):
-            #
+            # Flatten 1D index from 2D coordinates
             idx = row * img.width + col
 
-            #
-            if img_ds.find(idx) == parent:
+            # Update color to the given one if pixel belongs to same set as the start pixel
+            if img_uf.find(idx) == parent:
                 img.putpixel((col, row), color)
 
-            #
-            if idx % TIMER == 0:
+            # Add frame every FRAMES_INTERVAL pixels
+            if idx % FRAMES_INTERVAL == 0:
                 frames.append(img.copy())
 
     return frames
 
 
 #
-#
+# Uses queue (BFS) or stack (DFS) to flood fill the image with the given color from the given starting position
 #
 def recursive_flood_fill(
     img: Image.Image,
-    target: Point,
+    start: Point,
     color: Color,
     mode: str
 ) -> list[Image.Image]:
-    #
+    # List to store frames for the animation
     frames: list[Image.Image] = []
 
-    #
+    # Deque can be used as both queue and stack
     queue_stack: deque[Point] = deque()
-    #
-    queue_stack.append(target)
+    # Start with the start pixel, makes sense, right?
+    queue_stack.append(start)
 
-    #
-    target_color = Color(*img.getpixel(target))
+    # Get the color of the start pixel to compare against neighbors color
+    start_color = Color(*img.getpixel(start))
 
-    #
+    # Frame counter to manage interval
     frames_timer = 0
 
-    #
+    # Continue until structure is empty
     while len(queue_stack) != 0:
-        #
+        # Pop from front if queue, back if stack
         point = queue_stack.popleft() if mode == "queue" else queue_stack.pop() # if mode == "stack"
+        # Get color of current pixel
+        point_color = Color(*img.getpixel(point))
 
-        # 
-        if is_similar_color(target_color, Color(*img.getpixel(point))):
-            #
+        # Check if the color matches the start pixel
+        if is_similar_color(start_color, point_color):
+            # Update the current pixel with a new color
             img.putpixel((point.col, point.row), color)
-
-            if frames_timer % TIMER == 0:
-                frames.append(img.copy())
             
-            #
+            # Left neighbor
             if point.col - 1 >= 0:
                 queue_stack.append(Point(point.col - 1, point.row))
-            #
+            # Right neighbor
             if point.col + 1 < img.width:
                 queue_stack.append(Point(point.col + 1, point.row))
-            #
+            # Top neighbor
             if point.row - 1 >= 0:
                 queue_stack.append(Point(point.col, point.row - 1))
-            #
+            # Bottom neighbor
             if point.row + 1 < img.height:
                 queue_stack.append(Point(point.col, point.row + 1))
+
+        # Add frame every FRAMES_INTERVAL pixels
+        if frames_timer % FRAMES_INTERVAL == 0:
+            frames.append(img.copy())
 
         frames_timer += 1
 
@@ -176,50 +191,65 @@ def recursive_flood_fill(
 
 
 #
-#
+# Converts a comma-separated string into a tuple of integers
 #
 def to_tuple(arg: str) -> tuple[int]:
     return tuple(map(int, arg.split(',')))
 
 
 #
+# Evenly reduces the number of frames to the given limit
+#
+def evenly_limit_frames(frames: list, limit: int = 500) -> list[Image.Image]:
+    # Return the number is less than the limit
+    if len(frames) <= limit:
+        return frames 
+
+    # Calculate step size to space frames evenly
+    step = len(frames) / limit
+    # Rebuild list with the given number of evenly spaced frames
+    return [frames[int(i * step)] for i in range(limit)]
+
+
+#
 # The controlling unit of the program. 
 #
 def main() -> None:
-    #
+    # Better sys.argv
     parser = argparse.ArgumentParser()
 
-    #
-    parser.add_argument("image", type=str, help="Image filename")
-    parser.add_argument("target", type=to_tuple, help="Target pixel tuple (e.g. 0,0)")
-    parser.add_argument("color", type=to_tuple, help="Color to flood fill tuple (e.g. 255,0,0)")
-    # 
-    parser.add_argument("--mode", type=str, default="disjointsets", help="Data structure to flood fill with")
+    parser.add_argument("image", type=str, help="Path to the image to flood fill")
+    parser.add_argument("start", type=to_tuple, help="Starting point for the flood fill (e.g. 0,0)")
+    parser.add_argument("color", type=to_tuple, help="Fill color (e.g. 255,0,0)")
+    parser.add_argument("--adt", type=str, default="unionfind", help="Data structure to use in the flood fill")
 
-    #
+    # Parse the command-line arguments
     args: Args = parser.parse_args()
 
-    #
+    # Make sure a folder to store GIFs exists
     makedirs("gifs", exist_ok=True)
 
-    # Open the image
+    # Open the image to flood fill
     img: Image.Image = Image.open(args.image).convert("RGB")
 
-    #
-    if args.mode == "disjointsets":
-        frames = disjoint_sets_flood_fill(img, Point(*args.target), Color(*args.color))
+    # Based on the abstact data structure (or ADT) selected, flood fill with:
+    if args.adt == "unionfind":
+        # Union-find
+        frames = union_find_flood_fill(img, Point(*args.start), Color(*args.color))
+    elif args.adt == "stack" or args.adt == "queue":
+        # Recursion and stack/queue
+        frames = recursive_flood_fill(img, Point(*args.start), Color(*args.color), args.adt)
 
-    # 
-    elif args.mode == "stack" or args.mode == "queue":
-        frames = recursive_flood_fill(img, Point(*args.target), Color(*args.color), args.mode)
+    # Limit the number of frames to the specified limit
+    frames = evenly_limit_frames(frames, FRAMES_LIMIT)
 
-    # 
+    # Save the frames as an animated GIF
     frames[0].save(
-        f"gifs/{Path(args.image).stem}.gif",
+        f"gifs/{Path(args.image).stem}.gif", # Save as a GIF with the same name as the image
         save_all=True,
-        append_images=frames[1:],
-        duration=DURATION, 
-        loop=0
+        append_images=frames[1:], # Append subsequent frames
+        duration=FRAMES_DURATION, # Set duration per frame
+        loop=0                    # Make it an infinite loop
     )
 
     
