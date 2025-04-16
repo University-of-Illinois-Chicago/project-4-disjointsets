@@ -7,7 +7,8 @@
 # 
 # File: flood_fill.py
 #
-# TODO: description
+# Flood fill algorithm implementation that fills a region in an image starting from a specified point. 
+# Supports Union-Find, stack, and queue methods for flood filling, and generates an animated GIF of the process.
 #
 # Usage:    flood_fill.py [-h] [--mode MODE] image target color
 # Example:  flood_fill.py [-h] images/uic.png 50,50 255,0,0 --mode stack
@@ -17,16 +18,16 @@
 import argparse
 from collections import deque
 from dataclasses import dataclass
-from unionfind import UnionFind
+from os import makedirs
 from pathlib import Path
 from PIL import Image
 from typing import NamedTuple
-from os import makedirs
+from unionfind import UnionFind
 
 
-FRAMES_INTERVAL = 200
-FRAMES_LIMIT    = 200 
-FRAMES_DURATION = 1   # Duration each frame is shown (in seconds)
+FRAMES_INTERVAL = 200 # Pixels between frames taken during flood fill
+FRAMES_LIMIT    = 200 # Max number of frames to animate the flood fill
+FRAMES_DURATION = 1   # Duration each frame is shown (in milliseconds)
 
 
 # Type hints for the argument parser
@@ -245,7 +246,7 @@ def main() -> None:
 
     # Save the frames as an animated GIF
     frames[0].save(
-        f"gifs/{Path(args.image).stem}.gif", # Save as a GIF with the same name as the image
+        f"gifs/{Path(args.image).stem}.gif", # Save with the same name as the image but in the 'gifs' folder
         save_all=True,
         append_images=frames[1:], # Append subsequent frames
         duration=FRAMES_DURATION, # Set duration per frame
